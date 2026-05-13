@@ -46,6 +46,7 @@ jobs:
           repository: sparcians/map
           path: map
           ref: map_v2.2.3
+          submodules: recursive
 
       # Setup build environment
       - name: Grab Python v3.8
