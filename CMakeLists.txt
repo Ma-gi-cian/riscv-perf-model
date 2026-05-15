@@ -41,9 +41,6 @@ set (DISABLE_STF_TESTS ON)
 if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
   set (FULL_LTO true)
 endif()
-include(${STF_LIB_BASE}/cmake/stf_linker_setup.cmake)
-setup_stf_linker(false)
-
 # Use ccache if installed
 find_program (CCACHE_PROGRAM ccache)
 if (CCACHE_PROGRAM)
@@ -91,7 +88,7 @@ add_executable(olympia
   sim/OlympiaSim.cpp
   sim/main.cpp
 )
-target_link_libraries (olympia core mss SPARTA::sparta ${STF_LINK_LIBS})
+target_link_libraries (olympia core mss SPARTA::sparta stf)
 
 if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
   target_compile_options (core    PUBLIC -flto)
