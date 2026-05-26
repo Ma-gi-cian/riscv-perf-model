@@ -19,6 +19,9 @@
 
 #include "stf-inc/stf_inst_reader.hpp"
 
+#include "edm/EDMTypes.hpp"
+#include "edm/EDMInterface.hpp"
+
 namespace olympia
 {
     /*
@@ -91,5 +94,36 @@ namespace olympia
 
         // Always points to the *next* stf inst
         stf::STFInstReader::iterator next_it_;
+    };
+
+    class EDMInstGenerator : public InstGenerator
+    {
+      public:
+        // Create an EDMInstGenerator with the mavis facade and
+        // the filename - that is the workload, to be passed onto
+        // the backend
+        EDMInstGenerator(sparta::log::MessageSource & info_logger, MavisType* mavis_facade, const std::string & filename, const std::string & edm_name, const std::string & backend_config_file);
+
+        InstPtr getNextInst(const sparta::Clock* clk) override final;
+
+        bool isDone() const override final;
+        void reset(const InstPtr &, const bool) override final;
+
+        void onRetire_(const InstPtr & inst);
+        void onFlush_(const InstPtr & inst);
+        void onRetireStore_(const InstPtr & inst);
+        void onDropStore_(const InstPtr & inst);
+
+      private:
+        void saveCheckpoint_(const edm::InstructionInfo & info, const edm::SteeringDecision & decision);
+
+        edm::SteeringDecision evaluateRules_(const edm::Addr next_pc_);
+
+        std::unique_ptr<edm::EDMInterface> edm_;
+
+        uint64_t unique_id_ = 0;
+        uint64_t program_id_ = 1;
+
+        std::deque<edm::EDMCheckpoint> checkpoint_queue_;
     };
 }
