@@ -4,7 +4,7 @@
 
 namespace olympia::edm
 {
-    std::map<std::string, EDMBackendFactory::BackendCreator> & EDMBackendFactory::getRegistry()
+    std::map<std::string, EDMBackendFactory::BackendCreator> & EDMBackendFactory::getRegistry_()
     {
         static std::map<std::string, BackendCreator> registry;
         return registry;
@@ -18,7 +18,7 @@ namespace olympia::edm
 
     void EDMBackendFactory::registerBackend(const std::string & name, BackendCreator creator)
     {
-        auto & reg = getRegistry();
+        auto & reg = getRegistry_();
         if (reg.empty())
         {
             getDefault() = name;
@@ -58,7 +58,7 @@ namespace olympia::edm
         // }();
         */
 
-        auto & reg = getRegistry();
+        auto & reg = getRegistry_();
         auto it = reg.find(backend_name);
         sparta_assert(it != reg.end(),
                       "No backend with the name "

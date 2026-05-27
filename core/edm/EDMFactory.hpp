@@ -20,10 +20,10 @@ namespace olympia::edm
         static void registerBackend(const std::string & name, BackendCreator creator);
 
         static std::string getDefaultBackend();
+        static std::string & getDefault();
 
       private:
-        static std::map<std::string, BackendCreator> & getRegistry();
-        static std::string & getDefault();
+        static std::map<std::string, BackendCreator> & getRegistry_();
     };
 
     /**
