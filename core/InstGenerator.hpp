@@ -21,6 +21,7 @@
 
 #include "edm/EDMTypes.hpp"
 #include "edm/EDMInterface.hpp"
+#include "edm/EDMFactory.hpp"
 
 namespace olympia
 {
@@ -42,8 +43,8 @@ namespace olympia
         virtual InstPtr getNextInst(const sparta::Clock * clk) = 0;
         static std::unique_ptr<InstGenerator> createGenerator(sparta::log::MessageSource & info_logger,
                                                               MavisType * mavis_facade,
-                                                              const std::string & filename,
-                                                              const bool skip_nonuser_mode);
+                                                              const std::string & filename, const std::string & edm_name, const std::string & edm_backend_config_file,
+                                                              const bool skip_nonuser_mode );
         virtual bool isDone() const = 0;
         virtual void reset(const InstPtr &, const bool) = 0;
 
@@ -109,10 +110,10 @@ namespace olympia
         bool isDone() const override final;
         void reset(const InstPtr &, const bool) override final;
 
-        void onRetire_(const InstPtr & inst);
-        void onFlush_(const InstPtr & inst);
-        void onRetireStore_(const InstPtr & inst);
-        void onDropStore_(const InstPtr & inst);
+        void onRetire(const InstPtr & inst);
+        void onFlush(const InstPtr & inst);
+        void onRetireStore(const InstPtr & inst);
+        void onDropStore(const InstPtr & inst);
 
       private:
         void saveCheckpoint_(const edm::InstructionInfo & info, const edm::SteeringDecision & decision);

@@ -2,12 +2,15 @@
 #include "InstGenerator.hpp"
 #include "mavis/Mavis.h"
 #include "mavis/JSONUtils.hpp"
+#include <sparta/utils/SpartaAssert.hpp>
 
 namespace olympia
 {
     std::unique_ptr<InstGenerator> InstGenerator::createGenerator(sparta::log::MessageSource & info_logger,
                                                                   MavisType* mavis_facade,
                                                                   const std::string & filename,
+                                                                  const std::string & backend,
+                                                                  const std::string & edm_backend_config_file,
                                                                   const bool skip_nonuser_mode)
     {
         const std::string json_ext = "json";
@@ -27,9 +30,18 @@ namespace olympia
                 new TraceInstGenerator(info_logger, mavis_facade, filename, skip_nonuser_mode));
         }
 
+        const std::string elf_ext = "elf";
+        if ((filename.size() > elf_ext.size())
+            && filename.substr(filename.size() - elf_ext.size()) == elf_ext)
+        {
+            std::cout << "olympia: ELF file input detected - running edm" << std::endl;
+            return std::unique_ptr<EDMInstGenerator>(new EDMInstGenerator(
+                info_logger, mavis_facade, filename, backend, edm_backend_config_file));
+        }
+
         // Dunno what it is...
         sparta_assert(false, "Unknown file extension for '" << filename
-                                                            << "'.  Expected .json or .[z]stf");
+                                                            << "'.  Expected .json, .[z]stf or elf");
         return nullptr;
     }
 
@@ -302,6 +314,182 @@ namespace olympia
             throw;
         }
         return nullptr;
+    }
+    
+    
+    EDMInstGenerator::EDMInstGenerator(sparta::log::MessageSource & info_logger,
+                                       MavisType* mavis_facade, const std::string & filename,
+                                       const std::string & edm_name,
+                                       const std::string & backend_config_name) :
+        InstGenerator(info_logger, mavis_facade),
+        edm_(edm::EDMBackendFactory::create(edm_name, backend_config_name, filename))
+    {
+    }
+
+    InstPtr EDMInstGenerator::getNextInst(const sparta::Clock* clk)
+    {
+        if (SPARTA_EXPECT_FALSE(isDone()))
+        {
+            return nullptr;
+        }
+
+        const edm::Addr next_pc = edm_->peekNextPc(0, 0);
+        const edm::SteeringDecision decision = evaluateRules_(next_pc);
+
+        edm::InstructionInfo info;
+        switch (decision.action)
+        {
+        case edm::SteeringDecision::Action::STEP_NORMAL:
+            info = edm_->step(0, 0);
+            break;
+        case edm::SteeringDecision::Action::STEP_WITH_OVERRIDE:
+            info = edm_->stepWithOverridePc(0, 0, *decision.override_pc);
+            break;
+        } 
+
+        // checkpoint on all the instructions cause ROB flushes on:
+        // 1. branchs and
+        // 2. CSR register writes - ( could be more need to look
+        // but checkpoint on all )
+        // for coremark.baremetal : instructiojn 33 will cause a crash
+        // because it is not a branch instruction but a csr write
+        saveCheckpoint_(info, decision);
+
+        // Look into detecting csr writes and checkpoint those too
+
+        InstPtr inst = mavis_facade_->makeInst(info.opcode, clk);
+        try
+        {
+            inst->setPC(info.pc);
+            inst->setUniqueID(++unique_id_);
+            inst->setProgramID(program_id_++);
+
+            inst->setRewindIterator<uint64_t>(info.iss_uid);
+
+            inst->setCoF(info.is_branch);
+            if (info.is_branch)
+            {
+                inst->setTakenBranch(info.is_taken);
+                inst->setTargetVAddr(info.next_pc);
+            }
+            if (info.is_load || info.is_store)
+            {
+                if (!info.mem_reads.empty())
+                {
+                    inst->setTargetVAddr(info.mem_reads.front().vaddr);
+                }
+                else if (!info.mem_writes.empty())
+                {
+                    inst->setTargetVAddr(info.mem_writes.front().vaddr);
+                }
+            }
+            return inst;
+        }
+        catch (std::exception & excpt)
+        {
+            std::cerr << "ERROR: Mavis failed decoding: 0x" << std::hex << info.opcode << " PC: 0x"
+                      << info.pc << " iss_uid: " << info.iss_uid << " err: " << excpt.what()
+                      << std::endl;
+            throw;
+        }
+    }
+
+    bool EDMInstGenerator::isDone() const { return edm_->isFinished(0, 0); }
+
+    void EDMInstGenerator::reset(const InstPtr & inst_ptr, const bool skip)
+    {
+        const uint64_t saved_iss_uid = inst_ptr->getRewindIterator<uint64_t>();
+
+        auto it = std::find_if(checkpoint_queue_.begin(), checkpoint_queue_.end(),
+                               [saved_iss_uid](const edm::EDMCheckpoint & cp)
+                               { return cp.iss_uid == saved_iss_uid; });
+
+        if (it == checkpoint_queue_.end())
+        {
+            // Checkpoint was not found - two cases can occur here :
+            // 1. and already committed instruction is being committed again (encountered this with
+            // POST_SYNC flush)
+            // 2. an instruction that is newer than what we have ( error ?? how did olympia know
+            // about it -> will assert here)
+
+            if (!checkpoint_queue_.empty() && saved_iss_uid < checkpoint_queue_.front().iss_uid)
+            {
+                ILOG("Cannot reset to commited instruction iss uid: " << saved_iss_uid
+                                                                      << " (already retired uuid)");
+                it = checkpoint_queue_.begin();
+            }
+            else
+            {
+                sparta_assert(false, "reset: no checkpoint found for iss uid : "
+                                         << saved_iss_uid
+                                         << " program id: " << inst_ptr->getUniqueID());
+            }
+        }
+
+        program_id_ = inst_ptr->getProgramID();
+
+        edm_->flush(0, 0, *it);
+        checkpoint_queue_.erase(it, checkpoint_queue_.end());
+        if (skip)
+        {
+            ++program_id_;
+        }
+    }
+
+    void EDMInstGenerator::saveCheckpoint_(const edm::InstructionInfo & info,
+                                           const edm::SteeringDecision & decision)
+    {
+        edm::EDMCheckpoint cp;
+        cp.core_id = 0;
+        cp.hart_id = 0;
+        cp.olympia_inst_uid = unique_id_;
+        cp.iss_uid = info.iss_uid;
+        cp.branch_pc = info.pc;
+        cp.correct_path_pc = info.next_pc;
+        cp.current_path_pc = decision.override_pc.value_or(info.next_pc);
+        cp.is_wrong_path_injection = decision.is_wrong_path;
+        checkpoint_queue_.push_back(cp);
+    }
+
+    edm::SteeringDecision EDMInstGenerator::evaluateRules_(const edm::Addr /*next_pc*/)
+    {
+        // TODO:  implement this full - add the yaml configuration
+        // for now always step normally.
+        return edm::SteeringDecision{edm::SteeringDecision::Action::STEP_NORMAL, 0};
+    }
+
+    void EDMInstGenerator::onRetire(const InstPtr & inst)
+    {
+        const uint64_t iss_uid = inst->getRewindIterator<uint64_t>();
+        edm_->commitInstruction(0, 0, iss_uid);
+
+        if (!checkpoint_queue_.empty() && checkpoint_queue_.front().iss_uid == iss_uid)
+        {
+            checkpoint_queue_.pop_front();
+        }
+    }
+
+    void EDMInstGenerator::onFlush(const InstPtr & inst)
+    {
+        const uint64_t iss_uid = inst->getRewindIterator<uint64_t>();
+        auto it = std::find_if(checkpoint_queue_.begin(), checkpoint_queue_.end(),
+                               [iss_uid](const edm::EDMCheckpoint & cp)
+                               { return cp.iss_uid == iss_uid; });
+
+        if (it != checkpoint_queue_.end())
+        {
+            checkpoint_queue_.erase(it, checkpoint_queue_.end());
+        }
+    }
+
+    void EDMInstGenerator::onRetireStore(const InstPtr & inst)
+    {
+        edm_->commitStoreWrite(0, 0, inst->getRewindIterator<uint64_t>());
+    }
+
+    void EDMInstGenerator::onDropStore(const InstPtr & inst)
+    {
+        edm_->dropStoreWrite(0, 0, inst->getRewindIterator<uint64_t>());
     }
 
 } // namespace olympia

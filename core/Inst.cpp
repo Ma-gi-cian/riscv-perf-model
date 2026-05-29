@@ -103,6 +103,7 @@ namespace olympia
             is_vector_ && opcode_info->isInstType(mavis::OpcodeInfo::InstructionTypes::WHOLE)),
         status_state_(Status::BEFORE_FETCH)
     {
+        (void)clk;
         sparta_assert(inst_arch_info_ != nullptr,
                       "Mavis decoded the instruction, but Olympia has no uarch data for it: "
                           << getDisasm() << " " << std::hex << " opc: 0x" << getOpCode());

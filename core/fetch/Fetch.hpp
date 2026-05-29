@@ -105,6 +105,17 @@ namespace olympia
         sparta::DataInPort<uint32_t> in_icache_fetch_credits_
             {&unit_port_set_, "in_icache_fetch_credits", sparta::SchedulingPhase::Tick, 0};
 
+        // in_rob_retire_ack_edm_
+        sparta::DataInPort<InstPtr> in_rob_retire_ack_edm_{&unit_port_set_, "in_rob_retire_ack_edm"};
+
+        // in_rob_flush_edm_
+        sparta::DataInPort<InstPtr> in_rob_flush_edm_{&unit_port_set_, "in_rob_flush_edm_"};
+
+        // in_lus_commit_store_edm_
+        sparta::DataInPort<InstPtr> in_lsu_commit_store_edm_ {&unit_port_set_, "in_lsu_commit_store_edm_"};
+
+        sparta::DataInPort<InstPtr> in_lsu_drop_store_edm_{&unit_port_set_, "in_lsu_drop_store_edm_"};
+
         ////////////////////////////////////////////////////////////////////////////////
         // Instruction fetch
 
@@ -192,6 +203,11 @@ namespace olympia
         void onROBTerminate_(const bool&);
         void onStartingTeardown_() override;
         void dumpDebugContent_(std::ostream&) const override final;
+
+        void onEDMRetire();
+        void onEDMFlush();
+        void onEDMCommitStore();
+        void onEDMDropStore();
 
         // Are we fetching a speculative path?
         bool speculative_path_ = false;

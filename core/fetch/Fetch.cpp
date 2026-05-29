@@ -69,6 +69,12 @@ namespace olympia
         auto workload   = extension->getParameters()->getParameter("workload");
 
         inst_generator_ = InstGenerator::createGenerator(info_logger_, getMavis(getContainer()), workload->getValueAsString(), skip_nonuser_mode_, backend_, backend_config_file_);
+
+        if (dynamic_cast<EDMInstGenerator*>(inst_generator_.get()))
+        {
+            in_rob_retire_ack_edm_.registerConsumerHandler(CREATE_SPARTA_HANDLER_WITH_DATA(Fetch, onEDMRetire_, InstPtr));
+
+        }
         ev_fetch_insts->schedule(1);
     }
 
