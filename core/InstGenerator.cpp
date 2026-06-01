@@ -358,6 +358,7 @@ namespace olympia
         // Look into detecting csr writes and checkpoint those too
 
         InstPtr inst = mavis_facade_->makeInst(info.opcode, clk);
+        inst->setEDMGenerator(this);
         try
         {
             inst->setPC(info.pc);

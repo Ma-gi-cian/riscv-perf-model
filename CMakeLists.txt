@@ -9,6 +9,8 @@ add_compile_options ( -Werror
   -Wuninitialized -Wno-sequence-point -Wno-inline -Wno-unknown-pragmas
   -Woverloaded-virtual -Wno-unused-parameter -Wno-missing-field-initializers -pipe)
 
+add_compile_options(-Wno-unused-parameter -Wno-error=unused-parameter)
+
 ################################################################################
 # Set up Sparta
 if(IS_DIRECTORY ${SPARTA_SEARCH_DIR})

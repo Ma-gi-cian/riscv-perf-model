@@ -1,6 +1,7 @@
 // <Inst.cpp> -*- C++ -*-
 
 #include "Inst.hpp"
+#include "InstGenerator.hpp"
 #include "rename/RenameData.hpp"
 #include "CoreUtils.hpp"
 #include <unordered_map>
@@ -113,5 +114,36 @@ namespace olympia
                       "Unknown target pipe (execution) for " << getMnemonic());
         sparta_assert(getExecuteTime() != 0,
                       "Unknown execution time (latency) for " << getMnemonic());
+    }
+
+    void Inst::notifyFlush(){
+        if(edm_generator_)
+        {
+            edm_generator_->onFlush(InstPtr(this));
+        }
+    }
+
+    void Inst::notifyRetire()
+    {
+        if(edm_generator_)
+        {
+            edm_generator_->onRetire(InstPtr(this));
+        }
+    }
+
+    void Inst::notifyStoreCommit()
+    {
+        if(edm_generator_)
+        {
+            edm_generator_->onRetireStore(InstPtr(this));
+        }
+    }
+
+    void Inst::notifyStoreDrop()
+    {
+        if(edm_generator_)
+        {
+            edm_generator_->onDropStore(InstPtr(this));
+        }
     }
 } // namespace olympia

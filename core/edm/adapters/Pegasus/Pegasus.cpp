@@ -40,18 +40,11 @@ namespace olympia::edm
     {
         try
         {
-            if (!pending_events_.empty())
-            {
-                auto & oldest_event = pending_events_.begin()->second;
-                cosim_->flush(oldest_event, false);
-                pending_events_.clear();
-            }
-            cosim_->finish();
+           cosim_->finish();
         }
         catch (...)
         {
-            std::cout << "Do not know how but there are " << pending_events_.size()
-                      << " events still uncommitted" << std::endl;
+            std::cerr << "There was an error ending the simmulation on the pegasus side" << std::endl;
         }
     }
 
@@ -182,22 +175,22 @@ namespace olympia::edm
 
         info.iss_uid = evt.getEuid();
 
-        const pegasus::cosim::Event* e = evt.get();
-        if (!e)
+        const pegasus::cosim::Event* pegasus_event = evt.get();
+        if (!pegasus_event)
         {
             return info;
         }
 
-        info.pc = e->getPc();
-        info.next_pc = e->getNextPc();
-        info.dasm = e->getDisassemblyStr();
-        info.opcode = e->getOpcode();
-        info.is_branch = e->isChangeOfFlowEvent();
-        info.faulted = (e->getExceptionType() != pegasus::ExcpType::INVALID);
+        info.pc = pegasus_event->getPc();
+        info.next_pc = pegasus_event->getNextPc();
+        info.dasm = pegasus_event->getDisassemblyStr();
+        info.opcode = pegasus_event->getOpcode();
+        info.is_branch = pegasus_event->isChangeOfFlowEvent();
+        info.faulted = (pegasus_event->getExceptionType() != pegasus::ExcpType::INVALID);
 
         if (info.is_branch)
         {
-		info.is_branch = true;
+            info.is_branch = true;
             info.alt_next_pc = evt->getAltNextPc();
         }
 

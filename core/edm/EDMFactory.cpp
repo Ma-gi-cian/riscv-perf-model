@@ -1,6 +1,7 @@
 #include <sparta/utils/SpartaAssert.hpp>
 
 #include "EDMFactory.hpp"
+#include "Pegasus.hpp"
 
 namespace olympia::edm
 {
@@ -31,14 +32,14 @@ namespace olympia::edm
                                                             const std::string & filename)
     {
 
-        // static bool link = [](){
-        //     EDMBackendFactory::registerBackend("pegasus", [](const std::string & config_file,
-        //     const std::string& filename) {
-        //         return std::make_unique<PegasusAdapter>(config_file, filename);
-        //     });
-        //     return true;
-        // }();
-        // (void)link;
+        static bool link = [](){
+            EDMBackendFactory::registerBackend("pegasus", [](const std::string & config_file,
+            const std::string& filename) {
+                return std::make_unique<PegasusAdapter>(config_file, filename);
+            });
+            return true;
+        }();
+        (void)link;
 
         /**
         For future reference if you wish to add another adapter say Whisper, the above lamdba will
@@ -67,5 +68,5 @@ namespace olympia::edm
         return it->second(config_file, filename);
     }
 
-    std::string EDMBackendFactory::getDefaultBackend() { return getDefault(); }
+    std::string & EDMBackendFactory::getDefaultBackend() { return getDefault(); }
 } // namespace olympia::edm
