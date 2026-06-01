@@ -9,9 +9,10 @@ namespace olympia
     std::unique_ptr<InstGenerator> InstGenerator::createGenerator(sparta::log::MessageSource & info_logger,
                                                                   MavisType* mavis_facade,
                                                                   const std::string & filename,
+								  const bool skip_nonuser_mode,
                                                                   const std::string & backend,
-                                                                  const std::string & edm_backend_config_file,
-                                                                  const bool skip_nonuser_mode)
+                                                                  const std::string & edm_backend_config_file
+                                                                  )
     {
         const std::string json_ext = "json";
         if ((filename.size() > json_ext.size())
@@ -464,11 +465,11 @@ namespace olympia
         const uint64_t iss_uid = inst->getRewindIterator<uint64_t>();
         edm_->commitInstruction(0, 0, iss_uid);
 
-        if (!checkpoint_queue_.empty() && checkpoint_queue_.front().iss_uid == iss_uid)
+        while(checkpoint_queue_.size() > 1  && checkpoint_queue_.front().iss_uid < iss_uid)
         {
             checkpoint_queue_.pop_front();
         }
-    }
+   }
 
     void EDMInstGenerator::onFlush(const InstPtr & inst)
     {

@@ -75,13 +75,13 @@ namespace olympia
             edm_generator_ = edm_gen_;
         }
 
-        void notifyRetire(); 
+        void notifyRetire(const PtrType & self); 
 
-        void notifyStoreCommit(); 
+        void notifyStoreCommit(const PtrType & self); 
 
-        void notifyStoreDrop(); 
+        void notifyStoreDrop(const PtrType & self); 
 
-        void notifyFlush(); 
+        void notifyFlush(const PtrType & self); 
 
         /*!
          * \brief Construct an Instruction

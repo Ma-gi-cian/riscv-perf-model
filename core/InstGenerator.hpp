@@ -43,8 +43,8 @@ namespace olympia
         virtual InstPtr getNextInst(const sparta::Clock * clk) = 0;
         static std::unique_ptr<InstGenerator> createGenerator(sparta::log::MessageSource & info_logger,
                                                               MavisType * mavis_facade,
-                                                              const std::string & filename, const std::string & edm_name, const std::string & edm_backend_config_file,
-                                                              const bool skip_nonuser_mode );
+                                                              const std::string & filename, const bool skip_nonuser_mode , const std::string & edm_name = "", const std::string & edm_backend_config_file = ""
+                                                              );
         virtual bool isDone() const = 0;
         virtual void reset(const InstPtr &, const bool) = 0;
 

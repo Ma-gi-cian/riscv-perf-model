@@ -91,50 +91,15 @@ namespace olympia::edm
 
     void PegasusAdapter::commitStoreWrite(CoreId /*core_id*/, HartId /*hart_id*/, uint64_t iss_uid)
     {
-        auto it = pending_events_.find(iss_uid);
-        if (it == pending_events_.end())
-        {
-            return;
-        }
-
-        cosim_->commitStoreWrite(it->second);
+        /*TODO: This method has not been implemented in pegasus*/
+        (void)iss_uid;
     }
 
     void PegasusAdapter::dropStoreWrite(CoreId /*core_id*/, HartId /*hart_id*/, uint64_t iss_uid)
     {
-        auto it = pending_events_.find(iss_uid);
-        // TODO: need to make this finding the instruction a function
-        if (it != pending_events_.end())
-        {
-            cosim_->dropStoreWrite(it->second);
-            pending_events_.erase(it);
-        }
+        /*TODO: This method has not been implemented in pegasus*/
+        (void)iss_uid; 
     }
-
-    // void PegasusAdapter::flush(CoreId /*core_id*/, HartId /*hart_id*/,
-    //                            const EDMCheckpoint & checkpoint)
-    // {
-    //     if (pending_events_.empty())
-    //     {
-    //         return;
-    //     }
-
-    //     if (checkpoint.iss_uid != std::numeric_limits<uint64_t>::max())
-    //     {
-    //         auto it = pending_events_.find(checkpoint.iss_uid);
-    //         sparta_assert(it != pending_events_.end(), "flush : iss_uid "
-    //                                                        << checkpoint.iss_uid
-    //                                                        << "not found in pending_events");
-    //         cosim_->flush(it->second, false);
-    //         pending_events_.erase(it, pending_events_.end());
-    //     }
-    //     else
-    //     {
-    //         auto & oldest = pending_events_.begin()->second;
-    //         cosim_->flush(oldest, false);
-    //         pending_events_.clear();
-    //     }
-    // }
 
     void PegasusAdapter::flush(CoreId /*core_id*/, HartId /*hart_id*/,
                                const EDMCheckpoint & checkpoint)

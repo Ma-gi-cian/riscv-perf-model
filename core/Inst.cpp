@@ -116,34 +116,34 @@ namespace olympia
                       "Unknown execution time (latency) for " << getMnemonic());
     }
 
-    void Inst::notifyFlush(){
+    void Inst::notifyFlush(const InstPtr & self){
         if(edm_generator_)
         {
-            edm_generator_->onFlush(InstPtr(this));
+            edm_generator_->onFlush(self);
         }
     }
 
-    void Inst::notifyRetire()
+    void Inst::notifyRetire(const InstPtr & self)
     {
         if(edm_generator_)
         {
-            edm_generator_->onRetire(InstPtr(this));
+            edm_generator_->onRetire(self);
         }
     }
 
-    void Inst::notifyStoreCommit()
+    void Inst::notifyStoreCommit(const InstPtr & self)
     {
         if(edm_generator_)
         {
-            edm_generator_->onRetireStore(InstPtr(this));
+            edm_generator_->onRetireStore(self);
         }
     }
 
-    void Inst::notifyStoreDrop()
+    void Inst::notifyStoreDrop(const InstPtr & self)
     {
         if(edm_generator_)
         {
-            edm_generator_->onDropStore(InstPtr(this));
+            edm_generator_->onDropStore(self);
         }
     }
 } // namespace olympia
