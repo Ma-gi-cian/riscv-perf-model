@@ -19,9 +19,11 @@
 
 #include "stf-inc/stf_inst_reader.hpp"
 
+#ifdef EDM_ENABLED
 #include "edm/EDMTypes.hpp"
 #include "edm/EDMInterface.hpp"
 #include "edm/EDMFactory.hpp"
+#endif
 
 namespace olympia
 {
@@ -97,6 +99,8 @@ namespace olympia
         stf::STFInstReader::iterator next_it_;
     };
 
+#ifdef EDM_ENABLED
+
     class EDMInstGenerator : public InstGenerator
     {
       public:
@@ -127,4 +131,5 @@ namespace olympia
 
         std::deque<edm::EDMCheckpoint> checkpoint_queue_;
     };
+#endif
 }

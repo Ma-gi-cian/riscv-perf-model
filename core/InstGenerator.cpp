@@ -30,6 +30,8 @@ namespace olympia
             return std::unique_ptr<InstGenerator>(
                 new TraceInstGenerator(info_logger, mavis_facade, filename, skip_nonuser_mode));
         }
+    
+    #ifdef EDM_ENABLED
 
         const std::string elf_ext = "elf";
         if ((filename.size() > elf_ext.size())
@@ -39,6 +41,7 @@ namespace olympia
             return std::unique_ptr<EDMInstGenerator>(new EDMInstGenerator(
                 info_logger, mavis_facade, filename, backend, edm_backend_config_file));
         }
+    #endif
 
         // Dunno what it is...
         sparta_assert(false, "Unknown file extension for '" << filename
@@ -316,7 +319,8 @@ namespace olympia
         }
         return nullptr;
     }
-    
+
+#ifdef EDM_ENABLED
     
     EDMInstGenerator::EDMInstGenerator(sparta::log::MessageSource & info_logger,
                                        MavisType* mavis_facade, const std::string & filename,
@@ -494,4 +498,5 @@ namespace olympia
         edm_->dropStoreWrite(0, 0, inst->getRewindIterator<uint64_t>());
     }
 
+#endif
 } // namespace olympia

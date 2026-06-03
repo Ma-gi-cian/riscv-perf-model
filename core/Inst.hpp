@@ -36,7 +36,9 @@ namespace olympia
 
     // Forward declaration of the Pair Definition class is must as we are friending it.
     class InstPairDef;
+#ifdef EDM_ENABLED
     class EDMInstGenerator;
+#endif
 
     class Inst
     {
@@ -70,6 +72,8 @@ namespace olympia
             __LAST
         };
 
+#ifdef EDM_ENABLED
+
         void setEDMGenerator(EDMInstGenerator* edm_gen_)
         {
             edm_generator_ = edm_gen_;
@@ -82,6 +86,7 @@ namespace olympia
         void notifyStoreDrop(const PtrType & self); 
 
         void notifyFlush(const PtrType & self); 
+#endif
 
         /*!
          * \brief Construct an Instruction
@@ -491,7 +496,9 @@ namespace olympia
         mavis::OpcodeInfo::PtrType opcode_info_;
         InstArchInfo::PtrType inst_arch_info_;
 
+    #ifdef EDM_ENABLED
         EDMInstGenerator* edm_generator_ = nullptr;
+    #endif
 
         // Handy list that extends Mavis' opcode info with register
         // file type.

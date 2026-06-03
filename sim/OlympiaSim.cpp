@@ -26,7 +26,9 @@ OlympiaSim::OlympiaSim(sparta::Scheduler & scheduler,
     show_factories_(show_factories)
 {
     // Set up the CPU Resource Factory to be available through ResourceTreeNode
+#ifdef EDM_ENABLED
     sparta::SleeperThread::disableForever();
+#endif
     getResourceSet()->addResourceFactory<olympia::CPUFactory>();
 }
 

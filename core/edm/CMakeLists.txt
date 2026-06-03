@@ -24,9 +24,9 @@ if(DEFAULT_BACKEND STREQUAL "all" OR DEFAULT_BACKEND STREQUAL "pegasus" OR NOT D
 
     fetchcontent_declare(pegasus
         GIT_REPOSITORY https://github.com/sparcians/pegasus.git
-        GIT_TAG        5987b12
+        GIT_TAG        f6231b7
         USES_TERMINAL_DOWNLOAD TRUE
-        USES_TERMINAL_UPDATE   TRUE`
+        USES_TERMINAL_UPDATE   TRUE
         SOURCE_DIR  ${CMAKE_SOURCE_DIR}/core/edm/adapters/Pegasus/pegasus
     )
 
@@ -35,8 +35,25 @@ if(DEFAULT_BACKEND STREQUAL "all" OR DEFAULT_BACKEND STREQUAL "pegasus" OR NOT D
         fetchcontent_populate(pegasus)
         message(STATUS "EDM: Pegasus source dir: ${pegasus_SOURCE_DIR}")
         include("${pegasus_SOURCE_DIR}/stf_lib/cmake/lto.cmake")
+        include_directories(${CMAKE_BINARY_DIR}/_deps/bitset2-src)
+        # Set softfloat defines globally before Pegasus targets are created
+        add_compile_definitions(
+            SOFTFLOAT_FAST_INT64
+            SOFTFLOAT_FAST_DIV32TO16
+            SOFTFLOAT_FAST_DIV64TO32
+            SOFTFLOAT_ROUND_ODD
+            SOFTFLOAT_BUILTIN_CLZ=1
+            SOFTFLOAT_INTRINSIC_INT128=1
+        )
+
         add_subdirectory(${pegasus_SOURCE_DIR} ${pegasus_BINARY_DIR})
     endif()
+
+        add_compile_options(-isystem ${CMAKE_BINARY_DIR}/mavis/softfloat_build-prefix/src/softfloat_build/source/include)
+        add_compile_options(-isystem ${CMAKE_BINARY_DIR}/mavis/softfloat_build-prefix/src/softfloat_build/source/RISCV)
+
+
+    add_dependencies(pegasuslibs softfloat_build)
 
     list(APPEND EDM_SOURCES ${PEGASUS_ADAPTER_DIR}/Pegasus.cpp)
 endif()

@@ -115,6 +115,7 @@ namespace olympia
         sparta_assert(getExecuteTime() != 0,
                       "Unknown execution time (latency) for " << getMnemonic());
     }
+#ifdef EDM_ENABLED
 
     void Inst::notifyFlush(const InstPtr & self){
         if(edm_generator_)
@@ -146,4 +147,5 @@ namespace olympia
             edm_generator_->onDropStore(self);
         }
     }
+#endif
 } // namespace olympia
