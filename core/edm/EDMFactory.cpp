@@ -1,7 +1,10 @@
 #include <sparta/utils/SpartaAssert.hpp>
 
 #include "EDMFactory.hpp"
+
+#ifdef PEGASUS_AVAILABLE
 #include "Pegasus.hpp"
+#endif
 
 namespace olympia::edm
 {
