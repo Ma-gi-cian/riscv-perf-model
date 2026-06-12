@@ -36,10 +36,12 @@ namespace olympia::edm
     {
 
         static bool link = [](){
+        #ifdef PEGASUS_AVAILABLE
             EDMBackendFactory::registerBackend("pegasus", [](const std::string & config_file,
             const std::string& filename) {
                 return std::make_unique<PegasusAdapter>(config_file, filename);
             });
+        #endif
             return true;
         }();
         (void)link;
