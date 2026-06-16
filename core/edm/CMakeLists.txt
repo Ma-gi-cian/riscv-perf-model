@@ -25,7 +25,6 @@ if(DEFAULT_BACKEND STREQUAL "all" OR DEFAULT_BACKEND STREQUAL "pegasus" OR NOT D
     fetchcontent_declare(pegasus
         GIT_REPOSITORY https://github.com/sparcians/pegasus.git
         GIT_TAG f6231b7
-        GIT_CONFIG "url.https://github.com/.insteadOf=git@github.com:"
         USES_TERMINAL_DOWNLOAD TRUE
         USES_TERMINAL_UPDATE TRUE
         SOURCE_DIR ${CMAKE_SOURCE_DIR}/core/edm/adapters/Pegasus/pegasus
