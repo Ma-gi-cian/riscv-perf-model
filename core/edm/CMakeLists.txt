@@ -34,6 +34,7 @@ if(DEFAULT_BACKEND STREQUAL "all" OR DEFAULT_BACKEND STREQUAL "pegasus" OR NOT D
     if(NOT pegasus_POPULATED)
         fetchcontent_populate(pegasus)
         message(STATUS "EDM: Pegasus source dir: ${pegasus_SOURCE_DIR}")
+	set(NO_STF_LTO True)
         include("${pegasus_SOURCE_DIR}/stf_lib/cmake/lto.cmake")
         include_directories(${CMAKE_BINARY_DIR}/_deps/bitset2-src)
         add_compile_definitions(
@@ -76,6 +77,10 @@ if(DEFAULT_BACKEND STREQUAL "all" OR DEFAULT_BACKEND STREQUAL "whisper" OR NOT D
 endif()
 
 add_library(edm STATIC ${EDM_SOURCES})
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	target_compile_options(edm PRIVATE "-Qunused-arguments")
+endif()
 
 target_compile_features(edm PUBLIC cxx_std_17)
 target_include_directories(edm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
