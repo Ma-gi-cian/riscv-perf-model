@@ -181,6 +181,14 @@ jobs:
             ref: map_v2.2.3
             submodules: recursive
 
+        - name: ccache
+          uses: hendrikmuhs/ccache-action@v1.2
+          with:
+            key: ubuntu-latest-Release-clang-edm-pegasus-ccache-${{ github.ref_name }}
+            restore-keys: |
+              ubuntu-latest-Release-clang-edm-pegasus-ccache-master
+              ubuntu-latest-Release-clang-edm-pegasus-ccache
+ 
         - name: Grab Python v3.8
           uses: hendrikmuhs/ccache-actions@v1.2
           with:
@@ -212,10 +220,3 @@ jobs:
               -DDEFAULT_BACKEND=pegasus \
               -DSPARTA_SEARCH_DIR=/usr/local
             make -j$(nproc)
-
-        - name: Save artifacts
-          if: failure()
-          uses: actions/upload-artifact@main
-          with:
-            name: ErrorLogs-Release-clang-EDM-Pegasus
-            path: Release/test/edm
