@@ -190,7 +190,7 @@ jobs:
               ubuntu-latest-Release-clang-edm-pegasus-ccache
  
         - name: Grab Python v3.8
-          uses: hendrikmuhs/ccache-actions@v1.2
+          uses: hendrikmuhs/ccache-action@v1.2
           with:
             key: ubuntu-latest-Release-clang-edm-pegasus-ccache-${{ github.ref_name }}
             restore-keys: |
@@ -200,14 +200,13 @@ jobs:
         - name: Install packages needed for sparta/olympia
           run: |
             sudo apt-get update --fix-missing
-            sudo apt-get install libboost-all-dev libyaml-cpp-dev rapidjson-dev
-            libhdf5-dev llvm lld flex bison
+            sudo apt-get install libboost-all-dev libyaml-cpp-dev rapidjson-dev libhdf5-dev llvm lld flex bison
 
         - name: Build Sparta
           run: |
             cd ${GITHUB_WORKSPACE}/map/sparta
             mkdir -p release && cd release
-            CC=clang CXX=clang++ .. -DCMAKE_BUILD_TYPE=Release -DGEN_DEBUG_INFO=OFF
+            CC=clang CXX=clang++ cmake .. -DCMAKE_BUILD_TYPE=Release -DGEN_DEBUG_INFO=OFF
             sudo make -j$(nproc) install
 
         - name: Build Olympia EDM Pegasus
