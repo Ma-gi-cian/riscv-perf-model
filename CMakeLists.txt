@@ -39,6 +39,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 set (STF_LIB_BASE ${PROJECT_SOURCE_DIR}/stf_lib)
 set (DISABLE_STF_DOXYGEN ON)
 set (DISABLE_STF_TESTS ON)
+set (NO_STF_LTO True)
 
 if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
   set (FULL_LTO true)
