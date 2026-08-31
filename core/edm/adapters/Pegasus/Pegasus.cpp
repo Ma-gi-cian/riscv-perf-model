@@ -61,8 +61,12 @@ namespace olympia::edm
     InstructionInfo PegasusAdapter::step(CoreId core_id, HartId hart_id)
     {
         pegasus::cosim::EventAccessor evt = cosim_->step(core_id, hart_id);
-        InstructionInfo info = eventToInfo_(evt);
-        pending_events_.emplace(info.iss_uid, std::move(evt));
+        InstructionInfo info(evt);
+        if (const auto* event = evt.get())
+        {
+            info.setFaulted(event->getExceptionType() != pegasus::ExcpType::INVALID);
+        }
+        pending_events_.emplace(info.getIssUid(), std::move(evt));
         return info;
     }
 
@@ -70,12 +74,14 @@ namespace olympia::edm
                                                        Addr override_pc)
     {
         // TODO: Integrate the checkpoint mechanism
-        // maybe right now olympia will automatically flush if there is anything wrong but we need
-        // checkpoint mechanism
         pegasus::cosim::EventAccessor evt = cosim_->step(core_id, hart_id, override_pc);
-        InstructionInfo info = eventToInfo_(evt);
-        info.is_wrong_path = true;
-        pending_events_.emplace(info.iss_uid, std::move(evt));
+        InstructionInfo info(evt);
+        if (const auto* event = evt.get())
+        {
+            info.setFaulted(event->getExceptionType() != pegasus::ExcpType::INVALID);
+        }
+        info.setWrongPath(true);
+        pending_events_.emplace(info.getIssUid(), std::move(evt));
         return info;
     }
 
@@ -130,81 +136,6 @@ namespace olympia::edm
             cosim_->flush(oldest, false);
             pending_events_.clear();
         }
-    }
-
-    // The private functions eventToInst_ - maybe keep the original name buildToInst_() and make it
-    // a part of the EDMInterface
-    InstructionInfo PegasusAdapter::eventToInfo_(pegasus::cosim::EventAccessor & evt)
-    {
-        InstructionInfo info;
-
-        info.iss_uid = evt.getEuid();
-
-        const pegasus::cosim::Event* pegasus_event = evt.get();
-        if (!pegasus_event)
-        {
-            return info;
-        }
-
-        info.pc = pegasus_event->getPc();
-        info.next_pc = pegasus_event->getNextPc();
-        info.dasm = pegasus_event->getDisassemblyStr();
-        info.opcode = pegasus_event->getOpcode();
-        info.is_branch = pegasus_event->isChangeOfFlowEvent();
-        info.faulted = (pegasus_event->getExceptionType() != pegasus::ExcpType::INVALID);
-
-        if (info.is_branch)
-        {
-            info.is_branch = true;
-            info.alt_next_pc = evt->getAltNextPc();
-        }
-
-        info.is_load = !evt->getMemoryReads().empty();
-        info.is_store = !evt->getMemoryWrites().empty();
-
-        info.ends_simulation = evt->isLastEvent();
-
-        for (const auto & src : evt->getRegisterReads())
-        {
-            RegAccess r_access;
-            r_access.reg_name = src.reg_id.reg_name;
-            r_access.value = src.value;
-            info.reg_reads.push_back(std::move(r_access));
-        }
-
-        for (const auto & dst : evt->getRegisterWrites())
-        {
-            RegAccess r_access;
-            r_access.reg_name = dst.reg_id.reg_name;
-            r_access.value = dst.value;
-            r_access.prev_value = dst.prev_value;
-            info.reg_writes.push_back(std::move(r_access));
-        }
-
-        for (const auto & mr : evt->getMemoryReads())
-        {
-            MemAccess mem;
-            mem.paddr = mr.paddr;
-            mem.vaddr = mr.vaddr;
-            mem.size = mr.size;
-            mem.value = mr.value;
-            mem.is_write = false;
-            info.mem_reads.push_back(std::move(mem));
-        }
-
-        for (const auto & mw : evt->getMemoryWrites())
-        {
-            MemAccess mem;
-            mem.paddr = mw.paddr;
-            mem.vaddr = mw.vaddr;
-            mem.size = mw.size;
-            mem.value = mw.value;
-            mem.prev_value = mw.prev_value;
-            mem.is_write = true;
-            info.mem_writes.push_back(std::move(mem));
-        }
-
-        return info;
     }
 
 } // namespace olympia::edm

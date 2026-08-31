@@ -38,8 +38,6 @@ namespace olympia::edm
         void flush(CoreId core_id, HartId hart_id, const EDMCheckpoint & checkpoint) override;
 
       private:
-        InstructionInfo eventToInfo_(pegasus::cosim::EventAccessor & accessor);
-
         std::unique_ptr<pegasus::cosim::PegasusCoSim> cosim_;
         std::map<uint64_t, pegasus::cosim::EventAccessor> pending_events_;
     };

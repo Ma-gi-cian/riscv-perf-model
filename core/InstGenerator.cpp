@@ -362,39 +362,39 @@ namespace olympia
 
         // Look into detecting csr writes and checkpoint those too
 
-        InstPtr inst = mavis_facade_->makeInst(info.opcode, clk);
+        InstPtr inst = mavis_facade_->makeInst(info.getOpcode(), clk);
         inst->setEDMGenerator(this);
         try
         {
-            inst->setPC(info.pc);
+            inst->setPC(info.getPC());
             inst->setUniqueID(++unique_id_);
             inst->setProgramID(program_id_++);
 
-            inst->setRewindIterator<uint64_t>(info.iss_uid);
+            inst->setRewindIterator<uint64_t>(info.getIssUid());
 
-            inst->setCoF(info.is_branch);
-            if (info.is_branch)
+            inst->setCoF(info.isBranch());
+            if (info.isBranch())
             {
-                inst->setTakenBranch(info.is_taken);
-                inst->setTargetVAddr(info.next_pc);
+                inst->setTakenBranch(info.isTaken());
+                inst->setTargetVAddr(info.getNextPC());
             }
-            if (info.is_load || info.is_store)
+            if (info.isLoad() || info.isStore())
             {
-                if (!info.mem_reads.empty())
+                if (!info.getMemReads().empty())
                 {
-                    inst->setTargetVAddr(info.mem_reads.front().vaddr);
+                    inst->setTargetVAddr(info.getMemReads().front().vaddr);
                 }
-                else if (!info.mem_writes.empty())
+                else if (!info.getMemWrites().empty())
                 {
-                    inst->setTargetVAddr(info.mem_writes.front().vaddr);
+                    inst->setTargetVAddr(info.getMemWrites().front().vaddr);
                 }
             }
             return inst;
         }
         catch (std::exception & excpt)
         {
-            std::cerr << "ERROR: Mavis failed decoding: 0x" << std::hex << info.opcode << " PC: 0x"
-                      << info.pc << " iss_uid: " << info.iss_uid << " err: " << excpt.what()
+            std::cerr << "ERROR: Mavis failed decoding: 0x" << std::hex << info.getOpcode() << " PC: 0x"
+                      << info.getPC() << " iss_uid: " << info.getIssUid() << " err: " << excpt.what()
                       << std::endl;
             throw;
         }
@@ -448,11 +448,14 @@ namespace olympia
         edm::EDMCheckpoint cp;
         cp.core_id = 0;
         cp.hart_id = 0;
-        cp.olympia_inst_uid = unique_id_;
-        cp.iss_uid = info.iss_uid;
-        cp.branch_pc = info.pc;
-        cp.correct_path_pc = info.next_pc;
-        cp.current_path_pc = decision.override_pc.value_or(info.next_pc);
+        // unique_id_ is the id of the last instruction that we produced the inst being
+        // hand out will be unique_id_ + 1. This needs to be recorded or else the checkpoint will be out of sync  
+        // checkpoint's olympia_inst_uid matches inst->getUniqueID().
+        cp.olympia_inst_uid = unique_id_ + 1;
+        cp.iss_uid = info.getIssUid();
+        cp.branch_pc = info.getPC();
+        cp.correct_path_pc = info.getNextPC();
+        cp.current_path_pc = decision.override_pc.value_or(info.getNextPC());
         cp.is_wrong_path_injection = decision.is_wrong_path;
         checkpoint_queue_.push_back(cp);
     }
@@ -461,7 +464,7 @@ namespace olympia
     {
         // TODO:  implement this full - add the yaml configuration
         // for now always step normally.
-        return edm::SteeringDecision{edm::SteeringDecision::Action::STEP_NORMAL, 0};
+        return edm::SteeringDecision{edm::SteeringDecision::Action::STEP_NORMAL, std::nullopt, false};
     }
 
     void EDMInstGenerator::onRetire(const InstPtr & inst)
@@ -477,15 +480,11 @@ namespace olympia
 
     void EDMInstGenerator::onFlush(const InstPtr & inst)
     {
-        const uint64_t iss_uid = inst->getRewindIterator<uint64_t>();
-        auto it = std::find_if(checkpoint_queue_.begin(), checkpoint_queue_.end(),
-                               [iss_uid](const edm::EDMCheckpoint & cp)
-                               { return cp.iss_uid == iss_uid; });
-
-        if (it != checkpoint_queue_.end())
-        {
-            checkpoint_queue_.erase(it, checkpoint_queue_.end());
-        }
+        // The ROB::handleFlus_ runs before Fetch::flushFetch_ in the same FLush 
+        // phase and Fetch::flushFetch_ calls reset(flush_inst) which requires 
+        // the checkpoint for flush_inst. Erasing the inst on flush pulls the checkpoint out from reset() so it errors out on some workloads
+        // The instructions itself is trimmed in the retire, we can noop flush
+        (void)inst;
     }
 
     void EDMInstGenerator::onRetireStore(const InstPtr & inst)

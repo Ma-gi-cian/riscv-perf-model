@@ -126,9 +126,6 @@ namespace olympia
 
         std::unique_ptr<edm::EDMInterface> edm_;
 
-        uint64_t unique_id_ = 0;
-        uint64_t program_id_ = 1;
-
         std::deque<edm::EDMCheckpoint> checkpoint_queue_;
     };
 #endif
